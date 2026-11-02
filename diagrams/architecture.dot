@@ -1,0 +1,20 @@
+// Architecture as implemented. Dashed = optional/configured; offline default uses the mocks.
+// Render: dot -Tpng diagrams/architecture.dot -o docs/architecture.png  (requires Graphviz)
+digraph Architecture { rankdir=TB; node [shape=box,style=rounded];
+ iMessage [label="iMessage group"];
+ BlueBubbles [label="macOS Messages + BlueBubbles\n(bot user, public REST/webhook)"];
+ FastAPI [label="FastAPI app.main\n/webhooks/bluebubbles, /health, /dev/simulate"];
+ Admission [label="Admission\nself-sent, allowlist, wake/active, dedupe, group lock"];
+ Sessions [label="Orchestrator + state machine\nversioned sessions, onboarding, privacy"];
+ Ranking [label="Deterministic filter + ranking\nvoting service"];
+ Outbox [label="Outbox\nre-validates version before send"];
+ SQLite [label="SQLite (WAL)"];
+ Jev [label="Jev adapter\n(typesafe_systemone | jevtypesafe_decide)"];
+ Rules [label="Rules decision provider\n(default)"];
+ OSM [label="Nominatim + Overpass"];
+ Snapshot [label="OSM snapshot fixture\n(default, offline)"];
+ iMessage -> BlueBubbles -> FastAPI -> Admission -> Sessions;
+ Sessions -> SQLite; Sessions -> Ranking -> Outbox -> BlueBubbles;
+ Sessions -> Rules; Sessions -> Jev [style=dashed,label="ambiguous active messages only"];
+ Sessions -> Snapshot; Sessions -> OSM [style=dashed];
+}

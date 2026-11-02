@@ -1,0 +1,21 @@
+{
+ "source": "Nominatim (nominatim.openstreetmap.org)",
+ "license": "Data (c) OpenStreetMap contributors, ODbL 1.0",
+ "fetched_at": "2026-10-26",
+ "results": {
+  "tempe": {
+   "lat": 33.4255117,
+   "lon": -111.940016,
+   "display_name": "Tempe, Maricopa County, Arizona, United States",
+   "osm_type": "relation",
+   "osm_id": 110833
+  },
+  "mesa": {
+   "lat": 33.4151005,
+   "lon": -111.831455,
+   "display_name": "Mesa, Maricopa County, Arizona, United States",
+   "osm_type": "relation",
+   "osm_id": 110815
+  }
+ }
+}

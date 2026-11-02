@@ -1,0 +1,11 @@
+// Tables as created by app/persistence/migrations/001_initial.sql.
+// Render: dot -Tpng diagrams/er.dot -o docs/er.png  (requires Graphviz)
+digraph ER { rankdir=LR; node [shape=box,style=rounded];
+ groups -> members; groups -> sessions; groups -> personality_polls;
+ members -> preferences; members -> session_constraints; sessions -> session_constraints;
+ sessions -> session_participants; members -> session_participants;
+ sessions -> recommendations; sessions -> votes; members -> votes; recommendations -> votes;
+ personality_polls -> personality_votes; members -> personality_votes;
+ sessions -> outbox [style=dashed,label="session_id, session_version"];
+ processed_events; audit_events [label="audit_events\n(no message content)"];
+}

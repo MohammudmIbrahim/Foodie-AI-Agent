@@ -1,0 +1,23 @@
+// Session lifecycle as implemented in app/domain/sessions.py and app/services/orchestration.py.
+// Render: dot -Tpng diagrams/session.dot -o docs/session.png  (requires Graphviz)
+digraph Session { rankdir=LR; node [shape=box,style=rounded];
+ DORMANT [label="DORMANT\n(no active session)"];
+ ONBOARDING [label="ONBOARDING\nconsent -> name/style polls -> city"];
+ DORMANT -> ONBOARDING [label="authorized setup"];
+ ONBOARDING -> DORMANT [label="confirmed / declined"];
+ DORMANT -> COLLECTING [label="wake word"];
+ COLLECTING -> SEARCHING [label="area known; window/debounce elapsed\nor 'go'"];
+ SEARCHING -> SHORTLIST [label="version unchanged at commit"];
+ SEARCHING -> COLLECTING [label="new requirement; version++\n(old result discarded)"];
+ SEARCHING -> COLLECTING [label="provider error / no results", style=dashed];
+ SHORTLIST -> SHORTLIST [label="more / closer\n(new option numbers)"];
+ SHORTLIST -> VOTING [label="vote"];
+ SHORTLIST -> COLLECTING [label="requirements change; version++"];
+ VOTING -> COLLECTING [label="requirements change;\nvotes cleared"];
+ VOTING -> DONE [label="majority / close"];
+ COLLECTING -> STOPPED [label="stop"]; SEARCHING -> STOPPED [label="stop"];
+ SHORTLIST -> STOPPED [label="stop"]; VOTING -> STOPPED [label="stop"];
+ COLLECTING -> EXPIRED [label="idle timeout / restart"]; SEARCHING -> EXPIRED [label="idle timeout / restart"];
+ SHORTLIST -> EXPIRED [label="idle timeout"]; VOTING -> EXPIRED [label="idle timeout"];
+ DONE -> DORMANT [label="temp data cleared"]; STOPPED -> DORMANT; EXPIRED -> DORMANT;
+}
