@@ -152,7 +152,7 @@ def rank(places: list[Place], plan: SearchPlan, arrival: datetime) -> tuple[list
         elif food_court:
             reasons.insert(0, "food court, may suit mixed cravings (menu not verified)")
         hours_note = (
-            f"open at {arrival.strftime('%-I:%M %p')} per OSM hours" if is_open else "hours not confirmed"
+            f"open at {arrival.strftime('%I:%M %p').lstrip('0')} per OSM hours" if is_open else "hours not confirmed"
         )
         pool.append(
             RankedPlace(
