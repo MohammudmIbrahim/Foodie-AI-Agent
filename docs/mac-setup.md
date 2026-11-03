@@ -158,5 +158,6 @@ Mac, keep using `MESSAGE_PROVIDER=mock` and record the blocker.
 4. Faster: create a free Geoapify key (https://myprojects.geoapify.com) and set
    `PLACES_PROVIDER=geoapify`, `GEOAPIFY_API_KEY=...`. An area fetch costs about 1 credit per 20
    places (`GEOAPIFY_MAX_PLACES=1000` caps it near 51 of the free plan's 3,000 daily credits). If
-   Geoapify fails or the key is rejected, the bot falls back to public Overpass. The first live
-   run with a real key is unverified: compare `live_osm_check.py` output with the Overpass run.
+   Geoapify fails or the key is rejected, the bot falls back to public Overpass. Verified live
+   on 2026-11-03: `live_osm_check.py "Tempe, AZ" burger` fetched the area in ~7 s and returned
+   OSM-linked places with opening hours.

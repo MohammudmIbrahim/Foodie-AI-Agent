@@ -12,7 +12,7 @@ Foodie AI helps friends agree on where to eat without opening another app. It lo
 | Offline demo with no Apple hardware or API keys (`python scripts/demo.py`) | Runs end to end |
 | Live geocoding (Nominatim) | Verified once against the live service |
 | Live restaurant search (Overpass) | Verified against the live service: the first search in an area took ~35 s on the public server, later searches there ~1 ms from the saved area |
-| Live restaurant search (Geoapify) | Tested with simulated responses only; needs a free API key |
+| Live restaurant search (Geoapify) | Verified against the live service (2026-11-03): the first Tempe search took ~7 s, later searches there ~1 ms; needs a free API key |
 | Jev decision adapter | Tested with simulated responses only; no credentials yet |
 | BlueBubbles / real iMessage round trip | Tested with simulated responses only; **blocked** until the bot account and BlueBubbles are set up |
 
@@ -199,7 +199,7 @@ Do not add API keys to this repository; they belong in `.env`, which Git ignores
 2. Build a local webhook listener and deterministic `Foodie AI help` / `stop` commands. **Done.**
 3. Save group configuration and active sessions in SQLite; add nickname/personality voting. **Done.**
 4. Add Jev integration with strict input filtering and a rules-only fallback. **Done; live call not yet tested.**
-5. Add area geocoding, live restaurant lookup, radius filtering and Maps links. **Done; live Overpass verified, Geoapify mock-tested.**
+5. Add area geocoding, live restaurant lookup, radius filtering and Maps links. **Done; live Overpass and Geoapify verified.**
 6. Add fairness-aware ranking, valid voting, stale-result protection and automated tests. **Done.**
 7. Benchmark performance and record a consent-based demo before cloud scaling. **Offline benchmark done; live demo pending.**
 
