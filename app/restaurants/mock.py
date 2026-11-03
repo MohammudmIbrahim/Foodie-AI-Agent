@@ -11,8 +11,7 @@ import json
 from pathlib import Path
 
 from app.domain.models import GeoPoint, Place
-from app.restaurants.base import ProviderError, place_from_osm_element
-from app.restaurants.maps import haversine_miles
+from app.restaurants.base import ProviderError, filter_places, place_from_osm_element
 
 
 class FixturePlacesProvider:
@@ -30,14 +29,7 @@ class FixturePlacesProvider:
         self.calls += 1
         if self.latency_seconds:
             await asyncio.sleep(self.latency_seconds)
-        out = []
-        for p in self._places:
-            if haversine_miles(center.lat, center.lon, p.latitude, p.longitude) > radius_miles:
-                continue
-            if cuisine_tags and not (set(p.cuisine_tags) & cuisine_tags) and p.amenity != "food_court":
-                continue
-            out.append(p)
-        return out
+        return filter_places(self._places, center, radius_miles, cuisine_tags)
 
 
 class FixtureGeocoder:

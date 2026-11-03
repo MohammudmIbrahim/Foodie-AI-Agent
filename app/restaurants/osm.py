@@ -24,6 +24,7 @@ from app.restaurants.base import (
 from app.restaurants.maps import METERS_PER_MILE
 
 ATTRIBUTION = "Data (c) OpenStreetMap contributors (ODbL)"
+AREA_LIMIT = 3000
 
 
 class _RateGate:
@@ -120,7 +121,7 @@ class OverpassPlacesProvider:
         self.calls = 0
 
     @staticmethod
-    def build_query(center: GeoPoint, radius_miles: float, cuisine_tags: set[str], timeout: int) -> str:
+    def build_query(center: GeoPoint, radius_miles: float, cuisine_tags: set[str], timeout: int, limit: int = 300) -> str:
         radius_m = int(radius_miles * METERS_PER_MILE)
         cuisine = ""
         if cuisine_tags:
@@ -131,14 +132,23 @@ class OverpassPlacesProvider:
         if cuisine:
             # Food courts / mixed venues are the natural compromise candidates.
             out += f'nwr["amenity"="food_court"]["name"](around:{radius_m},{center.lat:.6f},{center.lon:.6f});'
-        return out + ");out center tags 300;"
+        return out + f");out center tags {limit};"
 
     async def search(self, center: GeoPoint, radius_miles: float, cuisine_tags: set[str]) -> list[Place]:
         key = (round(center.lat, 3), round(center.lon, 3), round(radius_miles, 1), tuple(sorted(cuisine_tags)))
         cached = self.cache.get(key)
         if cached is not None:
             return list(cached)  # type: ignore[arg-type]
-        query = self.build_query(center, radius_miles, cuisine_tags, int(self.timeout))
+        places = await self._query(self.build_query(center, radius_miles, cuisine_tags, int(self.timeout)))
+        self.cache.put(key, places)
+        return places
+
+    async def fetch_area(self, center: GeoPoint, radius_miles: float) -> tuple[list[Place], float]:
+        """Every food place in the area in one request. Overpass doesn't sort, so a capped result covers nothing."""
+        places = await self._query(self.build_query(center, radius_miles, set(), int(self.timeout), AREA_LIMIT))
+        return places, (0.0 if len(places) >= AREA_LIMIT else radius_miles)
+
+    async def _query(self, query: str) -> list[Place]:
         await self.gate.wait()
         self.calls += 1
         try:
@@ -156,6 +166,4 @@ class OverpassPlacesProvider:
         except (ValueError, KeyError, TypeError) as e:
             raise ProviderUnavailable("unparseable overpass response") from e
         fetched_at = (data.get("osm3s") or {}).get("timestamp_osm_base") or datetime.now(timezone.utc).isoformat()
-        places = [p for el in elements if (p := place_from_osm_element(el, fetched_at))]
-        self.cache.put(key, places)
-        return places
+        return [p for el in elements if (p := place_from_osm_element(el, fetched_at))]

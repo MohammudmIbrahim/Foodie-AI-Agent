@@ -6,7 +6,7 @@ import re
 from typing import Protocol
 
 from app.domain.models import Evidence, GeoPoint, Place
-from app.restaurants.maps import maps_search_url
+from app.restaurants.maps import haversine_miles, maps_search_url
 
 
 class ProviderError(Exception):
@@ -34,8 +34,31 @@ class PlacesProvider(Protocol):
         ...
 
 
+class AreaSource(Protocol):
+    """Fetches every food place around a point, nearest first when the result is capped."""
+
+    name: str
+    attribution: str
+
+    async def fetch_area(self, center: GeoPoint, radius_miles: float) -> tuple[list[Place], float]:
+        """Return (places, covered_radius_miles): every place within the covered radius is included."""
+        ...
+
+
 class Geocoder(Protocol):
     async def geocode(self, query: str) -> GeoPoint | None: ...
+
+
+def filter_places(places: list[Place], center: GeoPoint, radius_miles: float, cuisine_tags: set[str]) -> list[Place]:
+    """Places within the radius that match a cuisine tag; food courts count as a compromise for any cuisine."""
+    out = []
+    for p in places:
+        if haversine_miles(center.lat, center.lon, p.latitude, p.longitude) > radius_miles:
+            continue
+        if cuisine_tags and not (set(p.cuisine_tags) & cuisine_tags) and p.amenity != "food_court":
+            continue
+        out.append(p)
+    return out
 
 
 _DIET_KEYS = {

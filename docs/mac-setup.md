@@ -150,6 +150,13 @@ Mac, keep using `MESSAGE_PROVIDER=mock` and record the blocker.
 1. Set `OSM_USER_AGENT` to something identifying with a contact you own, e.g.
    `FoodieAI-local/0.1 (https://github.com/<you>/foodie-ai)`.
 2. Check connectivity once: `python scripts/live_osm_check.py "Tempe, AZ" burger`.
-3. Enable: `PLACES_PROVIDER=osm`, `ENABLE_LIVE_SEARCH=true`. Results are cached 15 min; Nominatim
-   is limited to 1 request/second. Public Overpass instances are frequently at capacity: the bot
-   reports "lookup unavailable" and waits for `Chef go` instead of retrying.
+3. Enable: `PLACES_PROVIDER=osm`, `ENABLE_LIVE_SEARCH=true`. Each area (at least
+   `DEFAULT_RADIUS_MILES` around the search point) is fetched once and reused for
+   `PLACES_AREA_TTL_MINUTES` (default a day); Nominatim is limited to 1 request/second. Public
+   Overpass instances are frequently at capacity: the bot reports "lookup unavailable" and waits
+   for `Chef go` instead of retrying.
+4. Faster: create a free Geoapify key (https://myprojects.geoapify.com) and set
+   `PLACES_PROVIDER=geoapify`, `GEOAPIFY_API_KEY=...`. An area fetch costs about 1 credit per 20
+   places (`GEOAPIFY_MAX_PLACES=1000` caps it near 51 of the free plan's 3,000 daily credits). If
+   Geoapify fails or the key is rejected, the bot falls back to public Overpass. The first live
+   run with a real key is unverified: compare `live_osm_check.py` output with the Overpass run.

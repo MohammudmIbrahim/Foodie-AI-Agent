@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     jev_max_calls_per_session: int = 4
     jev_max_calls_per_day: int = 200
 
-    places_provider: Literal["mock", "osm"] = "mock"
+    places_provider: Literal["mock", "osm", "geoapify"] = "mock"
     enable_live_search: bool = False
     places_fixture_path: str = "tests/fixtures/osm_snapshot.json"
     geocode_fixture_path: str = "tests/fixtures/geocode_snapshot.json"
@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     osm_user_agent: str = "FoodieAI-local-MVP/0.1"
     places_timeout_seconds: float = 45.0  # public Overpass often takes ~30 s
     places_cache_seconds: int = 900
+    places_area_ttl_minutes: float = 1440  # each area is fetched once a day, then searched locally
+    geoapify_api_key: str = ""
+    geoapify_url: str = "https://api.geoapify.com/v2/places"
+    geoapify_timeout_seconds: float = 10.0
+    geoapify_max_places: int = 1000  # ~51 credits per area fetch
 
     default_city: str = ""
     default_radius_miles: float = 5
@@ -88,8 +93,10 @@ class Settings(BaseSettings):
                 raise ConfigError("JEV_BASE_URL (https) and JEV_ENDPOINT are required for Jev.")
             if self.jev_schema == "typesafe_systemone" and not self.jev_model:
                 raise ConfigError("JEV_MODEL is required for the typesafe_systemone schema.")
-        if self.places_provider == "osm" and not self.enable_live_search:
-            raise ConfigError("PLACES_PROVIDER=osm requires ENABLE_LIVE_SEARCH=true.")
+        if self.places_live and not self.enable_live_search:
+            raise ConfigError(f"PLACES_PROVIDER={self.places_provider} requires ENABLE_LIVE_SEARCH=true.")
+        if self.places_provider == "geoapify" and not self.geoapify_api_key:
+            raise ConfigError("PLACES_PROVIDER=geoapify requires GEOAPIFY_API_KEY (free at https://myprojects.geoapify.com).")
         if self.app_env == "production":
             if not self.id_hash_pepper or self.id_hash_pepper == DEV_PEPPER:
                 raise ConfigError("ID_HASH_PEPPER must be set to a secret value in production.")
@@ -119,6 +126,10 @@ class Settings(BaseSettings):
         if not self.database_url.startswith(prefix):
             raise ConfigError("Only sqlite:/// DATABASE_URL values are supported in the MVP.")
         return self.database_url[len(prefix):]
+
+    @property
+    def places_live(self) -> bool:
+        return self.places_provider in ("osm", "geoapify")
 
     @property
     def jev_active(self) -> bool:

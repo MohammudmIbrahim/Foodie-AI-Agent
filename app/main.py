@@ -24,7 +24,9 @@ from app.messaging.mock import MockMessagingProvider
 from app.observability import Metrics, setup_logging
 from app.persistence.db import Database
 from app.persistence.repositories import Repo, utcnow
+from app.restaurants.area_cache import AreaCachedPlaces, FallbackAreaSource
 from app.restaurants.base import Geocoder, PlacesProvider
+from app.restaurants.geoapify import GeoapifyPlacesProvider
 from app.restaurants.mock import FixtureGeocoder, FixturePlacesProvider
 from app.restaurants.osm import NominatimGeocoder, OverpassPlacesProvider
 from app.security.webhook import is_loopback, verify_webhook
@@ -56,7 +58,7 @@ def build(
 ) -> Container:
     """Wire providers from configuration. Paid / live providers only when explicitly enabled."""
     http = httpx.AsyncClient() if (
-        settings.message_provider == "bluebubbles" or settings.places_provider == "osm" or settings.jev_active
+        settings.message_provider == "bluebubbles" or settings.places_live or settings.jev_active
     ) else None
     metrics = Metrics()
     db = db or Database(settings.sqlite_path)
@@ -66,8 +68,8 @@ def build(
             if settings.message_provider == "bluebubbles" and http else MockMessagingProvider()
         )
     if places is None or geocoder is None:
-        if settings.places_provider == "osm" and http:
-            places = places or OverpassPlacesProvider(http, settings.overpass_url, settings.osm_user_agent, settings.places_timeout_seconds, settings.places_cache_seconds)
+        if settings.places_live and http:
+            places = places or live_places(settings, http)
             geocoder = geocoder or NominatimGeocoder(http, settings.nominatim_url, settings.osm_user_agent)
         else:
             places = places or FixturePlacesProvider(settings.places_fixture_path)
@@ -84,6 +86,19 @@ def build(
             decisions = RulesDecisionProvider(settings.max_radius_miles)
     orch = Orchestrator(settings, Repo(db, clock), messaging, decisions, places, geocoder, metrics)
     return Container(settings, db, orch, http)
+
+
+def live_places(settings: Settings, http: httpx.AsyncClient) -> AreaCachedPlaces:
+    """Area-cached live search: Geoapify when keyed, with the free public Overpass server as backup."""
+    source = overpass = OverpassPlacesProvider(
+        http, settings.overpass_url, settings.osm_user_agent, settings.places_timeout_seconds, settings.places_cache_seconds
+    )
+    if settings.places_provider == "geoapify":
+        geoapify = GeoapifyPlacesProvider(
+            http, settings.geoapify_url, settings.geoapify_api_key, settings.geoapify_timeout_seconds, settings.geoapify_max_places
+        )
+        source = FallbackAreaSource(geoapify, overpass)
+    return AreaCachedPlaces(source, settings.default_radius_miles, settings.places_area_ttl_minutes * 60)
 
 
 class SimulatedMessage(BaseModel):

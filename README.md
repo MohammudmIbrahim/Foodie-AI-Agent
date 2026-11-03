@@ -8,10 +8,11 @@ Foodie AI helps friends agree on where to eat without opening another app. It lo
 
 | Area | Status |
 |---|---|
-| Backend: FastAPI, SQLite, sessions, onboarding, privacy, ranking, voting | Implemented; 131 automated tests pass |
+| Backend: FastAPI, SQLite, sessions, onboarding, privacy, ranking, voting | Implemented; 141 automated tests pass |
 | Offline demo with no Apple hardware or API keys (`python scripts/demo.py`) | Runs end to end |
 | Live geocoding (Nominatim) | Verified once against the live service |
-| Live restaurant search (Overpass) | Verified once against the live service (19 burger places near Tempe; the public server took ~30 s) |
+| Live restaurant search (Overpass) | Verified against the live service: the first search in an area took ~35 s on the public server, later searches there ~1 ms from the saved area |
+| Live restaurant search (Geoapify) | Tested with simulated responses only; needs a free API key |
 | Jev decision adapter | Tested with simulated responses only; no credentials yet |
 | BlueBubbles / real iMessage round trip | Tested with simulated responses only; **blocked** until the bot account and BlueBubbles are set up |
 
@@ -56,7 +57,7 @@ The actual recommendations must come from a restaurant provider. Foodie AI must 
 - **BlueBubbles:** bridge between Messages and local Python backend. For safety, the project does **not** require disabling macOS SIP.
 - **Python API:** wake-word detection, sessions, deduplication, interruption handling, and recommendation ranking.
 - **Jev API:** hosted structured decision service for ambiguous intent, group conflicts and next-action decisions. Not a restaurant database. API access or usage may cost money; a rules-only fallback keeps the local prototype usable without a paid Jev call.
-- **Restaurant provider:** OpenStreetMap / Overpass for a low-cost prototype. Coverage, reviews, prices, and hours may be incomplete. Add a licensed provider later for richer real-time data.
+- **Restaurant provider:** OpenStreetMap data, from Geoapify (fast, free key) or the public Overpass server (free, no key, slow) as backup. The bot fetches every food place around an area once a day and filters that saved list for each search, so changing cuisine, budget, diet or radius needs no new request. Coverage, reviews, prices, and hours may be incomplete. Add a licensed provider later for richer real-time data.
 - **SQLite:** group preferences (opt-in), session state, personality votes, restaurant references, and voting.
 
 **Performance approach:** deterministic commands first, call Jev only for ambiguity, query restaurants only when area and constraints are known, fetch extra details only for finalists, deduplicate events, and reject outdated search versions. Measure p50/p95 latency instead of promising a fixed response time.
@@ -171,6 +172,10 @@ python scripts/demo.py
 uvicorn app.main:app --host 127.0.0.1 --port 5050
 ```
 
+On Windows, use `.venv\Scripts\python` in place of `source .venv/bin/activate` and `python`.
+
+**Fast live search (free):** create a free key at [Geoapify](https://myprojects.geoapify.com), then set `PLACES_PROVIDER=geoapify`, `ENABLE_LIVE_SEARCH=true` and `GEOAPIFY_API_KEY=...` in `.env`. Check it with `python scripts/live_osm_check.py "Tempe, AZ" burger`. Without a key, `PLACES_PROVIDER=osm` uses the free public server, which can take a minute for the first search in an area.
+
 Keep the repo out of iCloud-synced folders (like an optimized Desktop); otherwise imports can hang while files re-download.
 
 **Hardware:** an existing Intel Mac. BlueBubbles and Messages must run under the dedicated bot's iMessage identity (a separate Apple Account email may be used if activation succeeds).
@@ -194,7 +199,7 @@ Do not add API keys to this repository; they belong in `.env`, which Git ignores
 2. Build a local webhook listener and deterministic `Foodie AI help` / `stop` commands. **Done.**
 3. Save group configuration and active sessions in SQLite; add nickname/personality voting. **Done.**
 4. Add Jev integration with strict input filtering and a rules-only fallback. **Done; live call not yet tested.**
-5. Add area geocoding, live restaurant lookup, radius filtering and Maps links. **Done; live Overpass verified once.**
+5. Add area geocoding, live restaurant lookup, radius filtering and Maps links. **Done; live Overpass verified, Geoapify mock-tested.**
 6. Add fairness-aware ranking, valid voting, stale-result protection and automated tests. **Done.**
 7. Benchmark performance and record a consent-based demo before cloud scaling. **Offline benchmark done; live demo pending.**
 

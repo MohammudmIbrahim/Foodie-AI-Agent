@@ -294,7 +294,7 @@ class Orchestrator:
         if not n:
             return "setup_repeat"
         self.repo.audit(group["id"], "onboarding_started")
-        places_live = self.s.places_provider == "osm"
+        places_live = self.s.places_live
         await self.reply(msg.chat_guid, replies.intro(group["agent_name"], self.s.jev_active, places_live, self.s.group_consent_min))
         return "intro"
 
